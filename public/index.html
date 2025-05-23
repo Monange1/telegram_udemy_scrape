@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Udemy Courses</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Free Udemy Courses</h1>
+            <div class="input-group">
+                <input type="number" id="courseCount" min="1" max="50" value="5" placeholder="Number of courses">
+                <button onclick="scrapeCourses()" class="scrape-button">🔍 Scrape Latest Courses</button>
+            </div>
+        </header>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Scraping latest courses...</p>
+        </div>
+
+        <div id="courseList" class="course-grid"></div>
+    </div>
+
+    <script>
+        async function scrapeCourses() {
+            const courseCount = document.getElementById('courseCount').value;
+            const loading = document.getElementById('loading');
+            const courseList = document.getElementById('courseList');
+
+            try {
+                loading.classList.remove('hidden');
+                courseList.innerHTML = '';
+                
+                const response = await fetch(`/api/courses/${courseCount}`);
+                const courses = await response.json();
+                
+                if (Array.isArray(courses) && courses.length > 0) {
+                    courses.forEach(course => {
+                        const courseElement = document.createElement('div');
+                        courseElement.className = 'course-card';
+                        courseElement.innerHTML = `
+                            <div class="course-content">
+                                <h3 class="course-title">${course.name}</h3>
+                                <p class="course-description">${course.description}</p>
+                                ${course.couponCode ? 
+                                    `<div class="coupon-badge">
+                                        <span class="coupon-label">Coupon Code:</span>
+                                        <span class="coupon-code">${course.couponCode}</span>
+                                    </div>` : ''
+                                }
+                            </div>
+                            <div class="course-actions">
+                                <a href="${course.url}" target="_blank" class="btn btn-view">
+                                    <span>🔗 View Details</span>
+                                </a>
+                                <button onclick="enrollCourse('${course.url}')" class="btn btn-enroll">
+                                    <span>✨ Auto Enroll</span>
+                                </button>
+                            </div>
+                        `;
+                        courseList.appendChild(courseElement);
+                    });
+                } else {
+                    courseList.innerHTML = '<p class="no-courses">No courses found</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                courseList.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        async function enrollCourse(courseUrl) {
+            try {
+                const response = await fetch('/api/enroll', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ courseUrl })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to start enrollment');
+                }
+
+                const result = await response.json();
+                alert('Enrollment process started! Please wait for the browser to open.');
+            } catch (error) {
+                console.error('Enrollment error:', error);
+                alert(`Error starting enrollment: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html> 
